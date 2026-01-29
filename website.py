@@ -1,57 +1,140 @@
 import streamlit as st
 import boto3
 
-# Sayfa Başlığı
-st.title("🕵️‍♂️ Fırat'ın Yapay Zeka Dedektifi")
-st.write("İki fotoğraf yükleyin, Yapay Zeka (AWS) aynı kişi olup olmadıklarını söylesin!")
+# --- 1. SAYFA AYARLARI ---
+st.set_page_config(page_title="Mistik Yapay Zeka Falcısı", page_icon="🔮", layout="centered")
 
-# 1. Kullanıcıdan Fotoğraf İsteme
-col1, col2 = st.columns(2)
-with col1:
-    st.header("1. Fotoğraf")
-    foto1 = st.file_uploader("Birinci resmi seç", type=['jpg', 'png', 'jpeg'], key="1")
+# --- 2. MİSTİK TASARIM (CSS) ---
+# Burası sitenin makyajı. Arka planı, renkleri ve kutuları ayarlıyor.
+st.markdown("""
+<style>
+    /* Arka Plan: Koyu Mor ve Gece Mavisi Geçişli */
+    .stApp {
+        background: linear-gradient(to bottom, #1a0026, #0d001a, #000000);
+        color: #ffffff;
+    }
+    
+    /* Başlık Stili */
+    h1 {
+        text-align: center;
+        color: #d4af37; /* Altın Sarısı */
+        text-shadow: 2px 2px 4px #000000;
+        font-family: 'Courier New', Courier, monospace;
+    }
+    
+    /* Yükleme Alanı Stili */
+    .stFileUploader {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 20px;
+        border: 1px solid #d4af37;
+    }
 
-with col2:
-    st.header("2. Fotoğraf")
-    foto2 = st.file_uploader("İkinci resmi seç", type=['jpg', 'png', 'jpeg'], key="2")
+    /* Sonuç Kartları (Kutucuklar) */
+    .mistik-kart {
+        background-color: rgba(255, 255, 255, 0.1); /* Yarı saydam */
+        padding: 20px;
+        border-radius: 15px;
+        border-left: 5px solid #9b59b6; /* Mor Çizgi */
+        margin-bottom: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    
+    /* Vurgulu Yazılar */
+    .highlight {
+        color: #f1c40f; /* Parlak Sarı */
+        font-weight: bold;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# 2. İşlemi Başlat
-if foto1 is not None and foto2 is not None:
-    st.success("✅ Fotoğraflar alındı! Analiz ediliyor...")
+# --- 3. BAŞLIK VE GİRİŞ ---
+st.title("🔮 Mistik Falcı")
+st.markdown("<p style='text-align: center; color: #b2bec3;'>Yüzünün fotoğrafını yükle, ruhunun derinliklerini okuyayım...</p>", unsafe_allow_html=True)
 
-    try:
-        # --- BURASI YENİLENDİ: ARTIK GİZLİ KASADAN OKUYORUZ ---
-        # Kodun içine şifre yazmıyoruz, güvenli yöntem bu.
-        rekognition = boto3.client(
-            'rekognition',
-            aws_access_key_id=st.secrets["aws"]["access_key"],
-            aws_secret_access_key=st.secrets["aws"]["secret_key"],
-            region_name='us-east-1'
-        )
-        
-        # Analiz (Bytes yöntemi ile)
-        response = rekognition.compare_faces(
-            SourceImage={'Bytes': foto1.getvalue()},
-            TargetImage={'Bytes': foto2.getvalue()},
-            SimilarityThreshold=0
-        )
+# --- 4. AWS BAĞLANTISI ---
+try:
+    rekognition = boto3.client(
+        'rekognition',
+        aws_access_key_id=st.secrets["aws"]["access_key"],
+        aws_secret_access_key=st.secrets["aws"]["secret_key"],
+        region_name='us-east-1'
+    )
+except:
+    st.error("⚠️ Hata: Büyülü anahtarlar (API Key) eksik! Lütfen Secrets ayarlarını kontrol et.")
 
-        # Sonucu Ekrana Bas
-        if len(response['FaceMatches']) > 0:
-            oran = response['FaceMatches'][0]['Similarity']
-            st.balloons()
-            st.metric(label="Benzerlik Oranı", value=f"%{oran:.2f}")
-            
-            if oran > 90:
-                st.info("Sonuç: KESİNLİKLE AYNI KİŞİ! ✅")
-            elif oran > 70:
-                st.warning("Sonuç: Büyük ihtimalle akraba veya aynı kişi. 🤔")
+# --- 5. FOTOĞRAF YÜKLEME ---
+uploaded_file = st.file_uploader("📸 Fotoğrafını Buraya Bırak", type=['jpg', 'png', 'jpeg'])
+
+if uploaded_file is not None:
+    # Fotoğrafı Ortala ve Göster
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        st.image(uploaded_file, caption='Senin Yansıman', use_container_width=True)
+    
+    # Bekleme Efekti
+    with st.spinner("🔮 Küreye bakılıyor... Yıldızlar hizalanıyor..."):
+        try:
+            image_bytes = uploaded_file.getvalue()
+            response = rekognition.detect_faces(
+                Image={'Bytes': image_bytes},
+                Attributes=['ALL']
+            )
+
+            if len(response['FaceDetails']) > 0:
+                yuz = response['FaceDetails'][0]
+                
+                # Verileri Çek
+                yas_alt = yuz['AgeRange']['Low']
+                yas_ust = yuz['AgeRange']['High']
+                duygular = yuz['Emotions']
+                baskin_duygu = max(duygular, key=lambda x: x['Confidence'])['Type']
+                duygu_guven = int(max(duygular, key=lambda x: x['Confidence'])['Confidence'])
+
+                st.markdown("---")
+                
+                # --- FAL YORUMLARI ---
+                
+                # 1. RUH HALİ KARTI
+                st.markdown(f"""
+                <div class="mistik-kart">
+                    <h3>🌙 Ruh Hali Analizi</h3>
+                    <p>Baskın Enerji: <span class="highlight">{baskin_duygu}</span> (%{duygu_guven})</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if baskin_duygu == 'HAPPY':
+                    st.success("🌟 **Yorum:** Yüzünde güneş açmış! Pozitif enerjin o kadar yüksek ki, ekran bile parladı. Bu neşeni koru, etrafındakilere de şifa oluyorsun.")
+                elif baskin_duygu == 'SAD':
+                    st.info("🌑 **Yorum:** Gözlerinde hüzünlü bir şiir var. İçine attığın dertler yüzüne yansımış. Ama unutma, her gecenin bir sabahı vardır.")
+                elif baskin_duygu == 'ANGRY':
+                    st.error("🔥 **Yorum:** İçinde fırtınalar kopuyor! Bir şeye çok kızmışsın. Öfke ateştir, dikkat et seni yakmasın. Derin bir nefes al.")
+                elif baskin_duygu == 'CALM':
+                    st.info("🌊 **Yorum:** Durgun bir su gibisin. Olaylara bilgece bakıyorsun. Seni sinirlendirmek imkansız gibi.")
+                else:
+                    st.warning("🌪️ **Yorum:** Kafan karışık, duyguların arasında gidip geliyorsun. Biraz dinlenmeye ihtiyacın var.")
+
+                # 2. KARAKTER VE FİZİKSEL KART
+                gozluk = "Var" if yuz['Eyeglasses']['Value'] else "Yok"
+                gulumseme = "Var" if yuz['Smile']['Value'] else "Yok"
+                
+                st.markdown(f"""
+                <div class="mistik-kart">
+                    <h3>🔮 Karakter ve Görünüm</h3>
+                    <p>⏳ <b>Tahmini Yaş Aralığı:</b> <span class="highlight">{yas_alt} - {yas_ust}</span></p>
+                    <p>👓 <b>Gözlük:</b> {gozluk} (Bilgelik göstergesi mi?)</p>
+                    <p>😊 <b>Gülümseme:</b> {gulumseme}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if yuz['Eyeglasses']['Value']:
+                    st.write("✒️ *Gözlüklerin sana entelektüel bir hava katmış. Detayları gören birisin.*")
+                
+                if not yuz['Smile']['Value']:
+                    st.write("🛡️ *Ciddi duruşun, insanlara karşı bir kalkan oluşturduğunu gösteriyor. Güvenini kazanmak zor.*")
+
             else:
-                st.warning("Sonuç: Biraz benziyor ama emin değilim.")
-        else:
-            st.error("Sonuç: BU İKİSİ FARKLI KİŞİ! ❌")
-            st.metric(label="Benzerlik Oranı", value="%0")
+                st.error("🚫 Fotoğrafta yüz göremedim! Belki de çok gizemli birisin? (Lütfen yüzünün net olduğu bir foto yükle)")
 
-    except Exception as e:
-        st.error(f"Hata oluştu: {e}")
-        st.info("İpucu: Eğer 'KeyError' alıyorsan, Buluttaki Secrets ayarlarını henüz yapmadın demektir.")
+        except Exception as e:
+            st.error(f"Sihirli kürede bir çatlak oluştu: {e}")
