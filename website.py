@@ -33,7 +33,7 @@ st.write("Yüzünü göster, ruhunu okuyalım...")
 
 # --- 2. BAĞLANTILAR (HATA KORUMALI) ---
 try:
-    # AWS'ye Bağlan (Region ismini elle yazdık, hata vermesin diye)
+    # AWS'ye Bağlan
     rekognition = boto3.client(
         'rekognition',
         aws_access_key_id=st.secrets["aws"]["access_key"],
@@ -41,9 +41,9 @@ try:
         region_name='us-east-1' 
     )
     
-    # Google Gemini'ye Bağlan
+    # Google Gemini'ye Bağlan (MODELİ DEĞİŞTİRDİK)
     genai.configure(api_key=st.secrets["google"]["api_key"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-pro') # <-- İŞTE BURASI DEĞİŞTİ (En garantisi bu)
     
 except Exception as e:
     st.error(f"⚠️ Bağlantı Hatası: Şifrelerinde sorun var! {e}")
