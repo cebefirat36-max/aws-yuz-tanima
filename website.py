@@ -2,7 +2,7 @@ import streamlit as st
 import boto3
 import google.generativeai as genai
 
-# --- 1. SAYFA VE TASARIM AYARLARI ---
+# --- 1. TASARIM AYARLARI ---
 st.set_page_config(page_title="Mistik Psikolog", page_icon="🧙‍♂️", layout="centered")
 
 st.markdown("""
@@ -31,9 +31,9 @@ st.markdown("""
 st.title("🧙‍♂️ Mistik Freud")
 st.write("Yüzünü göster, ruhunu okuyalım...")
 
-# --- 2. BAĞLANTILAR (HATA KORUMALI) ---
+# --- 2. BAĞLANTILAR (AKILLI MODEL SEÇİCİ) ---
 try:
-    # AWS'ye Bağlan
+    # A) AWS Bağlantısı
     rekognition = boto3.client(
         'rekognition',
         aws_access_key_id=st.secrets["aws"]["access_key"],
@@ -41,12 +41,21 @@ try:
         region_name='us-east-1' 
     )
     
-    # Google Gemini'ye Bağlan (MODELİ DEĞİŞTİRDİK)
+    # B) Google Gemini Bağlantısı (OTOMATİK SEÇİM)
     genai.configure(api_key=st.secrets["google"]["api_key"])
-    model = genai.GenerativeModel('gemini-pro') # <-- İŞTE BURASI DEĞİŞTİ (En garantisi bu)
+    
+    # Mevcut modelleri listele ve 'generateContent' yapabilen İLK modeli seç
+    try:
+        mevcut_modeller = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        secilen_model = mevcut_modeller[0] # Listeden ilk çalışanı al
+        model = genai.GenerativeModel(secilen_model)
+        # st.success(f"Bağlanan Beyin: {secilen_model}") # (Test için, sonra silinebilir)
+    except:
+        # Eğer liste alamazsa en garanti eski modele düş
+        model = genai.GenerativeModel('gemini-1.0-pro')
     
 except Exception as e:
-    st.error(f"⚠️ Bağlantı Hatası: Şifrelerinde sorun var! {e}")
+    st.error(f"⚠️ Bağlantı Hatası: {e}")
 
 # --- 3. İŞLEM ---
 uploaded_file = st.file_uploader("", type=['jpg', 'png', 'jpeg'])
